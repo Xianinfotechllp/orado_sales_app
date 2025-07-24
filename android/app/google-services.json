@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "908590403140",
+    "project_id": "oradosaleapp",
+    "storage_bucket": "oradosaleapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:908590403140:android:534122493b28a663c0f611",
+        "android_client_info": {
+          "package_name": "com.example.demo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJeqva_rB06P2V3Rm61JKjCd8qwL3yL40"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:908590403140:android:1a9c83e8b8932e87c0f611",
+        "android_client_info": {
+          "package_name": "com.example.oradosales"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJeqva_rB06P2V3Rm61JKjCd8qwL3yL40"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

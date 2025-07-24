@@ -1,0 +1,1 @@
+enum ApiResponseStatus { success, failed }
