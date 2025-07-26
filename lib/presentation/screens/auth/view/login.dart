@@ -40,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(
               height: MediaQuery.sizeOf(context).height / 1.7,
               width: MediaQuery.sizeOf(context).width,
-              child: Image.asset('assets/coverPic.png', fit: BoxFit.cover),
+              child: Image.asset('asstes/coverPic.png', fit: BoxFit.cover),
             ),
             Align(
               alignment: Alignment.bottomCenter,
@@ -104,30 +104,31 @@ class _LoginScreenState extends State<LoginScreen> {
                                   return;
                                 }
                                 await authController.login(
+                                  context,
                                   nameController.text,
                                   passwordController.text,
                                 );
                               },
                             ),
                         const SizedBox(height: 16),
-                        if (authController.message.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16.0),
-                            child: Text(
-                              authController.message,
-                              style: TextStyle(
-                                color:
-                                    authController.message.contains(
-                                          'successful',
-                                        )
-                                        ? Colors.green
-                                        : Colors.red,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
+                        // if (authController.message.isNotEmpty)
+                        //   Padding(
+                        //     padding: const EdgeInsets.only(bottom: 16.0),
+                        //     child: Text(
+                        //       authController.message,
+                        //       style: TextStyle(
+                        //         color:
+                        //             authController.message.contains(
+                        //                   'successful',
+                        //                 )
+                        //                 ? Colors.green
+                        //                 : Colors.red,
+                        //         fontSize: 14,
+                        //         fontWeight: FontWeight.bold,
+                        //       ),
+                        //       textAlign: TextAlign.center,
+                        //     ),
+                        //   ),
                         GestureDetector(
                           onTap: () {
                             Navigator.push(

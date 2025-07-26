@@ -19,10 +19,10 @@ class CustomDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<DrawerProvider, AgentAvailableController>(
-      builder: (context, drawerProvider, agentController, _) {
+    return Consumer3<DrawerProvider, AgentAvailableController, AuthController>(
+      builder: (context, drawerProvider, agentController, authController, _) {
         final selectedIndex = drawerProvider.selectedIndex;
-
+        final agent = authController.currentAgent;
         return Drawer(
           width: MediaQuery.sizeOf(context).width / 1.2,
           child: Padding(
@@ -35,19 +35,31 @@ class CustomDrawer extends StatelessWidget {
                     width: 60,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(18),
-                      image: const DecorationImage(
+                      image: DecorationImage(
                         fit: BoxFit.cover,
-                        image: AssetImage('asstes/profile.jpeg'),
+                        image:
+                            agent?.profilePicture != null
+                                ? NetworkImage(agent!.profilePicture!)
+                                : const AssetImage('asstes/profile.jpeg')
+                                    as ImageProvider,
                       ),
                     ),
                   ),
+
                   title: Text(
-                    'Anna Johnson',
-                    style: AppStyles.getSemiBoldTextStyle(fontSize: 17),
+                    agent?.fullName ?? '',
+                    style: AppStyles.getSemiBoldTextStyle(
+                      fontSize: 17,
+                      color: Colors.black,
+                    ),
                   ),
+
                   subtitle: Text(
-                    'annajohnson123@gmail.com',
-                    style: AppStyles.getMediumTextStyle(fontSize: 12),
+                    agent?.email ?? '',
+                    style: AppStyles.getMediumTextStyle(
+                      fontSize: 12,
+                      color: Colors.black,
+                    ),
                   ),
                 ),
 
@@ -74,7 +86,7 @@ class CustomDrawer extends StatelessWidget {
                     Scaffold.of(context).closeDrawer();
                   },
                   icon: Icon(
-                    OradoIcon.home_outlined,
+                    Icons.home_outlined,
                     color:
                         selectedIndex == 0 ? AppColors.baseColor : Colors.grey,
                   ),
@@ -87,11 +99,9 @@ class CustomDrawer extends StatelessWidget {
                     Scaffold.of(context).closeDrawer();
                   },
                   icon: Icon(
-                    OradoIcon.orders,
+                    Icons.shopping_bag_outlined,
                     color:
-                        selectedIndex == 1
-                            ? AppColors.baseColor
-                            : Colors.grey.shade400,
+                        selectedIndex == 1 ? AppColors.baseColor : Colors.grey,
                   ),
                   label: 'Orders',
                 ),
@@ -102,12 +112,39 @@ class CustomDrawer extends StatelessWidget {
                     Scaffold.of(context).closeDrawer();
                   },
                   icon: Icon(
-                    OradoIcon.money,
+                    Icons.warning_amber_rounded,
                     color:
                         selectedIndex == 2 ? AppColors.baseColor : Colors.grey,
                   ),
-                  label: 'Earnings',
+                  label: 'Letters',
                 ),
+                buildDrawerButton(
+                  selected: selectedIndex == 3,
+                  onTap: () {
+                    drawerProvider.updateIndex(3);
+                    Scaffold.of(context).closeDrawer();
+                  },
+                  icon: Icon(
+                    Icons.edit_document,
+                    color:
+                        selectedIndex == 3 ? AppColors.baseColor : Colors.grey,
+                  ),
+                  label: 'Leave Application',
+                ),
+
+                // buildDrawerButton(
+                //   selected: selectedIndex == 2,
+                //   onTap: () {
+                //     drawerProvider.updateIndex(2);
+                //     Scaffold.of(context).closeDrawer();
+                //   },
+                //   icon: Icon(
+                //     OradoIcon.money,
+                //     color:
+                //         selectedIndex == 2 ? AppColors.baseColor : Colors.grey,
+                //   ),
+                //   label: 'Earnings',
+                // ),
                 buildDrawerButton(
                   onTap: () {
                     Scaffold.of(context).closeDrawer();
@@ -121,7 +158,7 @@ class CustomDrawer extends StatelessWidget {
                 ),
                 const Spacer(),
                 buildDrawerButton(
-                  onTap: () => showLogutDialogue(context),
+                  onTap: () => showLogoutDialog(context),
                   icon: const Icon(OradoIcon.logout, color: Colors.grey),
                   label: 'Logout',
                 ),
@@ -166,7 +203,7 @@ class CustomDrawer extends StatelessWidget {
     );
   }
 
-  showLogutDialogue(BuildContext context) => showDialog(
+  void showLogoutDialog(BuildContext context) => showDialog(
     context: context,
     builder:
         (c) => Dialog(
@@ -186,21 +223,20 @@ class CustomDrawer extends StatelessWidget {
                 CustomButton().showColouredButton(
                   label: 'Naah, just kidding',
                   onPressed: () {
-                    context.pop(); // dismiss dialog
+                    Navigator.of(context).pop(); // Dismiss dialog
                   },
                 ),
                 const SizedBox(height: 10),
                 CustomButton().showOutlinedButton(
                   label: 'Yes, log me out',
                   onPressed: () async {
-                    // 👇 Access AuthController via Provider
+                    // Logout logic
                     final authController = Provider.of<AuthController>(
                       context,
                       listen: false,
                     );
                     await authController.logout();
 
-                    // 👇 Optionally reset AgentAvailableController toggle
                     final agentController =
                         Provider.of<AgentAvailableController>(
                           context,
@@ -209,11 +245,15 @@ class CustomDrawer extends StatelessWidget {
                     agentController.isAvailable = false;
                     await agentController.persistAvailability(false);
 
-                    // 👇 Close the dialog
-                    Navigator.of(context).pop();
+                    Navigator.of(context).pop(); // Dismiss dialog
 
-                    // 👇 Navigate to login screen
-                    context.go(LoginScreen.route);
+                    // Navigate to LoginScreen and remove all previous routes
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                      (route) => false,
+                    );
                   },
                 ),
               ],

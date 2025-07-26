@@ -1,6 +1,9 @@
 import 'dart:developer';
 import 'package:demo/presentation/profile_review_screen/profile_review_screen.dart';
+import 'package:demo/presentation/screens/auth/model/login_model.dart';
+import 'package:demo/presentation/screens/auth/service/selfi_status_service.dart';
 import 'package:demo/presentation/screens/auth/view/login.dart';
+import 'package:demo/presentation/screens/auth/view/selfi_screen.dart';
 import 'package:demo/presentation/screens/main_screen.dart';
 import 'package:demo/services/device_info_service.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +26,8 @@ class AuthController extends ChangeNotifier {
   String? _token;
   String? _agentId;
   bool _isLoading = false;
-
+  LoginAgent? _agent;
+  LoginAgent? get currentAgent => _agent;
   String get message => _message;
   String? get token => _token;
   String? get agentId => _agentId;
@@ -69,39 +73,63 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    log('Logout triggered. Clearing data...');
+    log('Logout triggered. Preparing to call logout API...');
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final fcmToken = prefs.getString('fcmToken') ?? '';
+      final token = prefs.getString('userToken') ?? '';
+
+      if (fcmToken.isEmpty || token.isEmpty) {
+        log('FCM token or auth token missing, skipping API logout');
+      } else {
+        await _agentService.logoutAgent(fcmToken: fcmToken, token: token);
+        log('Logout successful on server.');
+      }
+    } catch (e) {
+      log('Logout failed, but proceeding with local cleanup.');
+    }
+
+    // Local cleanup
     await clearStoredData();
     _message = 'You have been logged out.';
+
     if (_context != null && _context!.mounted) {
-      GoRouter.of(_context!).go(LoginScreen.route);
+      Navigator.of(_context!).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
     }
   }
 
-  Future<void> login(String identifier, String password) async {
+  Future<void> login(
+    BuildContext context,
+    String identifier,
+    String password,
+  ) async {
     _isLoading = true;
     _message = '';
-    log('Login started for $identifier');
     notifyListeners();
 
     try {
       final response = await _agentService.login(identifier, password);
       await _saveLoginData(response.token, response.agent.id);
       _message = response.message;
-      log('Login successful.');
 
       // ✅ Send device info to backend
       await DeviceInfoService().sendDeviceInfo(response.agent.id);
 
       // ✅ Navigate after successful login
-      if (_context != null && _context!.mounted) {
-        await Future.delayed(const Duration(milliseconds: 100));
+      if (context.mounted) {
+        final selfieStatus = await SelfieStatusService().fetchSelfieStatus();
 
-        if (response.statusCode == 200) {
-          log('Navigating to MainScreen');
-          GoRouter.of(_context!).go(MainScreen.route);
-        } else if (response.statusCode == 403) {
-          log('Navigating to ProfileReviewScreen');
-          GoRouter.of(_context!).go(ProfileReviewScreen.route);
+        if (selfieStatus?.selfieRequired == true) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const UploadSelfieScreen()),
+          );
+        } else if (response.statusCode == 200) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainScreen()),
+          );
         }
       }
     } catch (e) {

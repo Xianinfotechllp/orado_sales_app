@@ -133,4 +133,30 @@ class AgentService {
       throw Exception('Network error: $e');
     }
   }
+
+  Future<void> logoutAgent({
+    required String fcmToken,
+    required String token,
+  }) async {
+    final url = Uri.parse('https://orado-backend.onrender.com/agent/logout');
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token', // 🔐 Pass token in header
+    };
+    final body = jsonEncode({'fcmToken': fcmToken});
+
+    try {
+      final response = await http.post(url, headers: headers, body: body);
+      log(
+        'AgentService: Logout API response ${response.statusCode} - ${response.body}',
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Logout failed: ${response.body}');
+      }
+    } catch (e) {
+      log('AgentService: Logout API error: $e');
+      rethrow;
+    }
+  }
 }

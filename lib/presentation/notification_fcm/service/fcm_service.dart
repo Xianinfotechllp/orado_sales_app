@@ -1,145 +1,146 @@
 import 'dart:developer';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:demo/presentation/notification_fcm/controller/fcm_controller.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/material.dart';
+
+import 'package:demo/presentation/notification_fcm/controller/fcm_controller.dart';
 
 class FCMHandler {
   final FCMTokenController _tokenController = FCMTokenController();
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   late FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin;
   final FlutterTts flutterTts = FlutterTts();
-  // Initialize FCM
+
+  // Initialize FCM, local notifications, and TTS
   Future<void> initialize() async {
     await Firebase.initializeApp();
+    await _initTTS();
     _setupLocalNotifications();
     await _setupFCM();
   }
 
-  // Set up local notifications
+  Future<void> _initTTS() async {
+    await flutterTts.setLanguage("en-US");
+    await flutterTts.setSpeechRate(0.5);
+    await flutterTts.setPitch(1.0);
+  }
+
   void _setupLocalNotifications() {
     _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const initializationSettingsAndroid = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
 
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
+    const initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+    );
 
     _flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
-  // Set up FCM and handle tokens
   Future<void> _setupFCM() async {
     NotificationSettings settings = await _firebaseMessaging.requestPermission(
       alert: true,
-      announcement: false,
       badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
       sound: true,
     );
 
     log('User granted permission: ${settings.authorizationStatus}');
 
-    // Directly call method that gets token and sends to server
     await _sendTokenToServer();
 
-    // Listen for token refresh
     _firebaseMessaging.onTokenRefresh.listen((newToken) async {
       log('FCM Token refreshed: $newToken');
-      await _sendTokenToServer(); // Automatically fetches the latest token
+      await _sendTokenToServer();
     });
 
-    // Handle foreground messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      log('Got a message whilst in the foreground!');
-      log('Message data: ${message.data}');
-
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      log('Foreground message: ${message.data}');
       if (message.notification != null) {
-        log('Message also contained a notification: ${message.notification}');
         _showNotification(message);
-        _speak("New order arrived");
+        final String spokenText =
+            message.notification?.title ?? "New notification received";
+        await _speak(spokenText);
       }
     });
 
-    // Background message handler
     FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundMessageHandler);
   }
 
-  // Updated to fetch token internally
   Future<void> _sendTokenToServer() async {
     try {
       String? token = await _firebaseMessaging.getToken();
-
       if (token == null) {
         log('FCM token is null');
         return;
       }
 
       final prefs = await SharedPreferences.getInstance();
+
+      // 🔐 Save token to SharedPreferences
+      await prefs.setString('fcmToken', token);
+      log('FCM token saved to SharedPreferences: $token');
+
       String? agentId = prefs.getString('agentId');
 
       if (agentId == null || agentId.isEmpty) {
-        log('Agent ID not found in SharedPreferences');
+        log('Agent ID not found');
         return;
       }
 
+      // Send to server via controller
       bool success = await _tokenController.saveTokenToServer(
         agentId: agentId,
         fcmToken: token,
       );
 
       if (success) {
-        log('FCM token successfully saved to server for agent $agentId');
+        log('Token saved to server successfully');
       } else {
-        log('Failed to save FCM token to server for agent $agentId');
+        log('Failed to save token to server');
       }
     } catch (e) {
-      log('Error sending FCM token to server: $e');
+      log('Error sending token: $e');
     }
   }
 
-  // Show local notification
   Future<void> _showNotification(RemoteMessage message) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-          'your_channel_id',
-          'your_channel_name',
-          importance: Importance.max,
-          priority: Priority.high,
-          showWhen: false,
-        );
-
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
+    const androidDetails = AndroidNotificationDetails(
+      'default_channel',
+      'Default',
+      importance: Importance.max,
+      priority: Priority.high,
     );
+
+    const notificationDetails = NotificationDetails(android: androidDetails);
 
     await _flutterLocalNotificationsPlugin.show(
       0,
-      message.notification?.title,
-      message.notification?.body,
-      platformChannelSpecifics,
+      message.notification?.title ?? "Title",
+      message.notification?.body ?? "Body",
+      notificationDetails,
       payload: message.data.toString(),
     );
   }
 
-  // Background message handler
+  Future<void> _speak(String text) async {
+    try {
+      await flutterTts.awaitSpeakCompletion(true);
+      await flutterTts.speak(text);
+    } catch (e) {
+      log("TTS error: $e");
+    }
+  }
+
   @pragma('vm:entry-point')
   static Future<void> _firebaseBackgroundMessageHandler(
     RemoteMessage message,
   ) async {
     await Firebase.initializeApp();
     log("Handling a background message: ${message.messageId}");
-    // You can add your background notification handling here
-  }
-
-  Future<void> _speak(String text) async {
-    await flutterTts.setLanguage("en-US");
-    await flutterTts.setPitch(1.0);
-    await flutterTts.speak(text);
   }
 }

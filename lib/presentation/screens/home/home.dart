@@ -1,257 +1,391 @@
-// import 'package:flutter/material.dart';
-import 'package:demo/constants/styles.dart';
-import 'package:demo/presentation/screens/home/homeview/provider/home_provider.dart';
-import 'package:demo/presentation/socket_io/socket_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// import 'package:svg_flutter/svg.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:demo/constants/styles.dart';
+import 'package:demo/presentation/screens/home/homeview/provider/home_provider.dart';
+import 'package:lottie/lottie.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-  static String route = 'home';
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late SocketController _socketController;
   @override
   void initState() {
     super.initState();
-    // _socketController = SocketController();
-    // _connectToSocket();
-    // Load data on screen load
-    Provider.of<AgentHomeProvider>(context, listen: false).loadAgentHomeData();
-  }
-
-  // Future<void> _connectToSocket() async {
-  //   try {
-  //     await _socketController.connectSocket();
-  //     debugPrint('Socket connected successfully');
-  //   } catch (e) {
-  //     debugPrint('Socket connection error: $e');
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('Connection error: ${e.toString()}')),
-  //       );
-  //     }
-  //   }
-  // }
-
-  @override
-  void dispose() {
-    // Disconnect socket when screen is disposed
-    // _socketController.disconnectSocket();
-    super.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AgentHomeProvider>(
+        context,
+        listen: false,
+      ).loadAgentHomeData();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AgentHomeProvider>(
-      builder: (context, agentHomeProvider, child) {
-        return ListView(
-          padding: const EdgeInsets.all(12),
-          children: [
-            const SizedBox(height: 20),
-            Wrap(
-              alignment: WrapAlignment.center,
-              children: [
-                _buildOrderCard('New \nOrders', 4, 'asstes/new_orders.png'),
-                _buildOrderCard(
-                  'Cancelled \nOrders',
-                  agentHomeProvider.cancelledOrders,
-                  'asstes/previous.png',
+    return Scaffold(
+      backgroundColor: Colors.white, // Set white background here
+      body: Consumer<AgentHomeProvider>(
+        builder: (context, agentHomeProvider, child) {
+          final homeData = agentHomeProvider.homeData;
+          final theme = Theme.of(context);
+
+          return agentHomeProvider.isLoading
+              ? Center(
+                child: Lottie.asset(
+                  'asstes/Delivery guy out for delivery.json',
+                  width: 180,
+                  height: 180,
+                  fit: BoxFit.contain,
                 ),
-                _buildOrderCard(
-                  'Total \nOrders',
-                  agentHomeProvider.totalOrders,
-                  'asstes/total.png',
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(15.0),
+              )
+              : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Incentive structure',
-                          style: AppStyles.getSemiBoldTextStyle(fontSize: 18),
-                        ),
-                        Material(
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14.0,
-                              vertical: 6,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'April 2024',
-                                  style: AppStyles.getMediumTextStyle(
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                const SizedBox(width: 5),
-                                Icon(
-                                  Icons.keyboard_arrow_down_outlined,
-                                  color: Colors.grey,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 40),
-                    RichText(
-                      text: TextSpan(
-                        style: AppStyles.getMediumTextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                        children: [
-                          const TextSpan(text: 'Total Incentives:  '),
-                          TextSpan(
-                            text: '7250',
-                            style: AppStyles.getSemiBoldTextStyle(
-                              fontSize: 18,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 25),
-                    SfCartesianChart(
-                      primaryXAxis: CategoryAxis(
-                        labelStyle: AppStyles.getMediumTextStyle(fontSize: 13),
-                      ),
-                      primaryYAxis: NumericAxis(
-                        labelStyle: AppStyles.getMediumTextStyle(fontSize: 13),
-                      ),
-                      plotAreaBorderWidth: 0,
-                      borderWidth: 0,
-                      tooltipBehavior: TooltipBehavior(
-                        enable: true,
-                        canShowMarker: true,
-                        textAlignment: ChartAlignment.far,
-                      ),
-                      series: <ColumnSeries<SalesData, String>>[
-                        ColumnSeries<SalesData, String>(
-                          width: 0.2,
-                          isTrackVisible: true,
-                          trackColor: Colors.grey.shade300,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(20),
-                            topRight: Radius.circular(20),
-                          ),
-                          markerSettings: const MarkerSettings(
-                            isVisible: true,
-                            shape: DataMarkerType.circle,
-                            width: 22,
-                            height: 22,
-                          ),
-                          dataSource:
-                              agentHomeProvider.incentiveGraph
-                                  .map(
-                                    (item) => SalesData(
-                                      year: item['period'],
-                                      sales: item['value'],
-                                    ),
-                                  )
-                                  .toList(),
-                          pointColorMapper: (SalesData sales, _) {
-                            if (sales.year == 'Daily') {
-                              return const Color(0xFF7DE314);
-                            } else if (sales.year == 'Weekly') {
-                              return const Color(0xFF01CC9B);
-                            } else if (sales.year == 'Monthly') {
-                              return const Color(0xFF14A0C0);
-                            }
-                          },
-                          xValueMapper: (SalesData sales, _) => sales.year,
-                          yValueMapper: (SalesData sales, _) => sales.sales,
-                        ),
-                      ],
-                    ),
+                    const SizedBox(height: 8),
+                    _buildHeader(theme),
+                    const SizedBox(height: 24),
+                    _buildStatsGrid(agentHomeProvider),
+                    const SizedBox(height: 24),
+                    _buildSummaryCard(homeData, theme),
                   ],
                 ),
-              ),
-            ),
-          ],
-        );
-      },
+              );
+        },
+      ),
     );
   }
 
-  Widget _buildOrderCard(String title, int count, String iconPath) {
-    return Padding(
-      padding: const EdgeInsets.all(1.0),
-      child: Container(
-        width: 120,
-        height: 140,
-        child: Stack(
-          fit: StackFit.expand,
+  Widget _buildHeader(ThemeData theme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              color: const Color(0xFFF3DCC5),
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  left: 18.0,
-                  bottom: 18,
-                  right: 18,
-                  top: 30,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      count.toString(),
-                      style: AppStyles.getBoldTextStyle(fontSize: 20),
-                    ),
-                    Text(
-                      title,
-                      style: AppStyles.getMediumTextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
-                ),
+            Text(
+              'Welcome back!',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Colors.black87, // Darker text for better contrast
               ),
             ),
-            Align(
-              alignment: Alignment.topLeft,
-              child: Transform.translate(
-                offset: const Offset(20, -15),
-                child: Material(
-                  elevation: 8,
-                  type: MaterialType.transparency,
-                  child: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.white,
-                    child: Image.asset(iconPath, height: 22),
+            Text(
+              'Here\'s your daily summary',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.black54,
+              ),
+            ),
+          ],
+        ),
+        CircleAvatar(
+          radius: 24,
+          backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+          child: Icon(Icons.person, color: theme.colorScheme.primary, size: 28),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsGrid(AgentHomeProvider provider) {
+    final homeData = provider.homeData;
+
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 3,
+      childAspectRatio: 0.8,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      children: [
+        _buildStatCard(
+          title: 'New Orders',
+          value:
+              homeData?.orderSummary.newOrders ??
+              0, // Using newOrders from OrderSummary
+          icon: Icons.add_shopping_cart,
+          color: const Color(0xFFE3F2FD),
+          iconColor: const Color(0xFF1976D2),
+        ),
+        _buildStatCard(
+          title: 'Cancelled',
+          value:
+              homeData?.orderSummary.rejectedOrders ??
+              0, // Using rejectedOrders from OrderSummary
+          icon: Icons.cancel_outlined,
+          color: const Color(0xFFFFEBEE),
+          iconColor: const Color(0xFFD32F2F),
+        ),
+        _buildStatCard(
+          title: 'Total Orders',
+          value:
+              homeData?.orderSummary.totalOrders ??
+              0, // Using totalOrders from OrderSummary
+          icon: Icons.list_alt,
+          color: const Color(0xFFE8F5E9),
+          iconColor: const Color(0xFF388E3C),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required String title,
+    required int value,
+    required IconData icon,
+    required Color color,
+    required Color iconColor,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 6,
+                    spreadRadius: 1,
                   ),
-                ),
+                ],
+              ),
+              child: Icon(icon, size: 20, color: iconColor),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              value.toString(),
+              style: AppStyles.getBoldTextStyle(
+                fontSize: 20,
+              ).copyWith(color: Colors.black87),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: AppStyles.getMediumTextStyle(
+                fontSize: 12,
+                color: Colors.black54,
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSummaryCard(homeData, ThemeData theme) {
+    final earnings = homeData?.dailySummary?.earnings ?? 0;
+    final rating = homeData?.dailySummary?.rating ?? 0.0;
+    final distance = homeData?.dailySummary?.distanceTravelledKm ?? 0.0;
+    final deliveries = homeData?.dailySummary?.totalDeliveries ?? 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Today\'s Performance',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Today',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildMetricRow(
+              icon: Icons.local_shipping_outlined,
+              title: 'Deliveries',
+              value: deliveries.toString(),
+              iconColor: const Color(0xFF4CAF50),
+            ),
+            _buildMetricRow(
+              icon: Icons.currency_rupee_outlined,
+              title: 'Earnings',
+              value: "₹${earnings.toStringAsFixed(0)}",
+              iconColor: const Color(0xFF2196F3),
+            ),
+            _buildMetricRow(
+              icon: Icons.directions_walk,
+              title: 'Distance',
+              value: "${distance.toStringAsFixed(1)} km",
+              iconColor: const Color(0xFF9C27B0),
+            ),
+            _buildMetricRow(
+              icon: Icons.star_outline,
+              title: 'Rating',
+              value: rating.toStringAsFixed(1),
+              iconColor: const Color(0xFFFF9800),
+              isLast: true,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Incentive Progress',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(height: 220, child: _buildIncentiveChart()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricRow({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color iconColor,
+    bool isLast = false,
+  }) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: iconColor),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: AppStyles.getMediumTextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              value,
+              style: AppStyles.getBoldTextStyle(
+                fontSize: 15,
+              ).copyWith(color: Colors.black87),
+            ),
+          ],
+        ),
+        if (!isLast)
+          Divider(height: 24, color: Colors.grey.shade200, thickness: 1),
+      ],
+    );
+  }
+
+  Widget _buildIncentiveChart() {
+    final incentiveGraph =
+        Provider.of<AgentHomeProvider>(context, listen: false).incentiveGraph;
+
+    final List<SalesData> data =
+        incentiveGraph
+            .map(
+              (item) => SalesData(
+                year: item['period'],
+                sales: item['value'].toDouble(),
+              ),
+            )
+            .toList();
+
+    return SfCartesianChart(
+      margin: EdgeInsets.zero,
+      plotAreaBorderWidth: 0,
+      primaryXAxis: CategoryAxis(
+        labelStyle: AppStyles.getMediumTextStyle(
+          fontSize: 12,
+        ).copyWith(color: Colors.black54),
+        majorGridLines: const MajorGridLines(width: 0),
+      ),
+      primaryYAxis: NumericAxis(
+        labelStyle: AppStyles.getMediumTextStyle(
+          fontSize: 12,
+        ).copyWith(color: Colors.black54),
+        majorGridLines: const MajorGridLines(width: 0),
+        axisLine: const AxisLine(width: 0),
+      ),
+      tooltipBehavior: TooltipBehavior(
+        enable: true,
+        header: '',
+        format: 'point.x : point.y',
+        textStyle: AppStyles.getMediumTextStyle(
+          fontSize: 12,
+        ).copyWith(color: Colors.white),
+      ),
+      series: <ColumnSeries<SalesData, String>>[
+        ColumnSeries<SalesData, String>(
+          width: 0.4,
+          spacing: 0.2,
+          dataSource: data,
+          borderRadius: BorderRadius.circular(4),
+          color: const Color(0xFF6366F1),
+          gradient: LinearGradient(
+            colors: [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+          ),
+          xValueMapper: (SalesData sales, _) => sales.year!,
+          yValueMapper: (SalesData sales, _) => sales.sales!,
+          dataLabelSettings: const DataLabelSettings(
+            isVisible: true,
+            labelAlignment: ChartDataLabelAlignment.top,
+            textStyle: TextStyle(fontSize: 12, color: Colors.black87),
+          ),
+        ),
+      ],
     );
   }
 }

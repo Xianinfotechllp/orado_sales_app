@@ -1,8 +1,11 @@
+import 'package:demo/presentation/leave/view/leave_home_screen.dart';
+import 'package:demo/presentation/letters/view/letter_view.dart';
+import 'package:demo/presentation/notification_fcm/view/notification_screen.dart';
 import 'package:demo/presentation/screens/chat_screen.dart';
-import 'package:demo/presentation/screens/home/earnings/earnings.dart';
+import 'package:demo/presentation/screens/earnings/earnings.dart';
 import 'package:demo/presentation/screens/home/home.dart';
 import 'package:demo/presentation/screens/home/orado.dart';
-import 'package:demo/presentation/screens/home/orders/view/orders.dart';
+import 'package:demo/presentation/screens/orders/view/orders.dart';
 import 'package:demo/presentation/screens/home/provider/drawer_controller.dart';
 import 'package:demo/widgets/custom_drawer.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +29,7 @@ class MainScreen extends StatelessWidget {
             }
           },
           child: Scaffold(
-            drawer: const CustomDrawer(),
+            drawer: CustomDrawer(),
             appBar: AppBar(
               backgroundColor: Colors.white,
               leading: Padding(
@@ -47,6 +50,20 @@ class MainScreen extends StatelessWidget {
                 ),
               ),
               actions: [
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => NotificationScreen(),
+                      ),
+                    );
+                  },
+                  icon: Icon(
+                    Icons.notifications_active_outlined,
+                    color: Colors.black,
+                  ),
+                ),
                 Container(
                   height: 60,
                   width: 60,
@@ -77,11 +94,11 @@ class MainScreen extends StatelessWidget {
       case 1:
         return const OrdersListScreen();
       case 2:
-        return const Earnings();
+        return const LetterScreen();
       case 3:
-        return const ChatScreen(id: 0);
-      case 4:
-        return const OradoChatScreen();
+        return const LeaveManagementHome();
+      // case 4:
+      //   return const OradoChatScreen();
 
       default:
         return HomeScreen();

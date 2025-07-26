@@ -1,5 +1,4 @@
 import 'dart:developer';
-
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
 class SocketService {
@@ -7,9 +6,9 @@ class SocketService {
   factory SocketService() => _instance;
   SocketService._internal();
 
-  io.Socket? _socket; // Correct type declaration
+  io.Socket? _socket;
 
-  io.Socket? get instance => _socket; // Correct return type
+  io.Socket? get instance => _socket;
 
   Future<void> connect({
     required String userId,
@@ -20,10 +19,9 @@ class SocketService {
     Function(dynamic error)? onError,
   }) async {
     try {
-      final url = 'https://orado-backend.onrender.com'; // Your backend URL
+      final url = 'https://orado-backend.onrender.com';
 
       _socket = io.io(
-        // Use _socket here
         url,
         io.OptionBuilder()
             .setTransports(['websocket'])
@@ -32,46 +30,59 @@ class SocketService {
             .build(),
       );
 
+      // Corrected event handlers without type casting
       _socket!.onConnect((_) {
-        // Use _socket! here
         log('✅ Connected to socket server');
-        // Emit the 'join-room' event immediately after connection
-        _socket!.emit('join-room', {
-          // Use _socket! here
-          'userId': userId,
-          'userType': userType,
-        });
-        log('Emitted join-room event for userId: $userId, userType: $userType');
-        if (onConnect != null) onConnect();
+        _socket!.emit('join-room', {'userId': userId, 'userType': userType});
+        log('📢 Emitted join-room for userId: $userId, userType: $userType');
+        onConnect?.call();
       });
 
       _socket!.onDisconnect((_) {
-        // Use _socket! here
         log('❌ Disconnected from socket server');
-        if (onDisconnect != null) onDisconnect();
+        onDisconnect?.call();
       });
 
-      _socket!.onError((data) {
-        // Use _socket! here
-        log('⚠ Socket error: $data');
-        if (onError != null) onError(data);
+      _socket!.onError((error) {
+        log('⚠ Socket error: $error');
+        onError?.call(error);
       });
 
       _socket!.on('orderAssigned', (data) {
-        // Use _socket! here
         log('📦 New order assigned: $data');
-        if (onOrderAssigned != null) onOrderAssigned(data);
+        onOrderAssigned?.call(data);
       });
 
-      _socket!.connect(); // Use _socket! here
+      _socket!.connect();
     } catch (e) {
       throw Exception('Socket connection error: $e');
     }
   }
 
+  void emitAgentLocation({
+    required String agentId,
+    required double lat,
+    required double lng,
+    required Map<String, dynamic> deviceInfo,
+  }) {
+    if (_socket != null && _socket!.connected) {
+      _socket!.emit('agent:location', {
+        'agentId': agentId,
+        'lat': lat,
+        'lng': lng,
+        'deviceInfo': deviceInfo,
+      });
+      log(
+        '📍 Emitted agent:location => agentId: $agentId, lat: $lat, lng: $lng, deviceInfo: $deviceInfo',
+      );
+    } else {
+      log('⚠ Socket not connected. Cannot emit agent location.');
+    }
+  }
+
   void disconnect() {
-    _socket?.disconnect(); // Use _socket? here
+    _socket?.disconnect();
     _socket = null;
-    log('Socket disconnected explicitly.');
+    log('🔌 Socket disconnected manually.');
   }
 }
