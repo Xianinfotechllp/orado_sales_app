@@ -1,7 +1,7 @@
 import 'dart:developer';
 import 'package:demo/presentation/notification_fcm/controller/notification_get_controlller.dart';
 import 'package:demo/presentation/notification_fcm/model/notification_get_model.dart';
-import 'package:demo/presentation/screens/orders/view/order_details_screen.dart';
+import 'package:demo/presentation/orders/view/order_details_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';

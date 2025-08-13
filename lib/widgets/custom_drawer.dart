@@ -1,10 +1,11 @@
 import 'package:demo/constants/orado_icon_icons.dart';
 import 'package:demo/drawer/drawer_bloc.dart';
-import 'package:demo/presentation/screens/auth/provider/user_provider.dart';
-import 'package:demo/presentation/screens/auth/view/login.dart';
-import 'package:demo/presentation/screens/chat_screen.dart';
-import 'package:demo/presentation/screens/home/provider/available_provider.dart';
-import 'package:demo/presentation/screens/home/provider/drawer_controller.dart';
+import 'package:demo/presentation/auth/provider/user_provider.dart';
+import 'package:demo/presentation/auth/view/login.dart';
+import 'package:demo/presentation/home/chat_screen.dart';
+import 'package:demo/presentation/home/home/provider/available_provider.dart';
+import 'package:demo/presentation/home/home/provider/drawer_controller.dart';
+import 'package:demo/presentation/socket_io/socket_controller.dart';
 import 'package:demo/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -19,8 +20,20 @@ class CustomDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer3<DrawerProvider, AgentAvailableController, AuthController>(
-      builder: (context, drawerProvider, agentController, authController, _) {
+    return Consumer4<
+      DrawerProvider,
+      AgentAvailableController,
+      AuthController,
+      SocketController
+    >(
+      builder: (
+        context,
+        drawerProvider,
+        agentController,
+        authController,
+        socketController,
+        _,
+      ) {
         final selectedIndex = drawerProvider.selectedIndex;
         final agent = authController.currentAgent;
         return Drawer(
@@ -29,52 +42,72 @@ class CustomDrawer extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 12),
             child: Column(
               children: [
-                ListTile(
-                  leading: Container(
-                    height: 60,
-                    width: 60,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      image: DecorationImage(
-                        fit: BoxFit.cover,
-                        image:
-                            agent?.profilePicture != null
-                                ? NetworkImage(agent!.profilePicture!)
-                                : const AssetImage('asstes/profile.jpeg')
-                                    as ImageProvider,
-                      ),
-                    ),
-                  ),
+                // ListTile(
+                //   leading: Container(
+                //     height: 60,
+                //     width: 60,
+                //     decoration: BoxDecoration(
+                //       borderRadius: BorderRadius.circular(18),
+                //       image: DecorationImage(
+                //         fit: BoxFit.cover,
+                //         image:
+                //             agent?.profilePicture != null
+                //                 ? NetworkImage(agent!.profilePicture!)
+                //                 : const AssetImage('asstes/profile.jpeg')
+                //                     as ImageProvider,
+                //       ),
+                //     ),
+                //   ),
 
-                  title: Text(
-                    agent?.fullName ?? '',
-                    style: AppStyles.getSemiBoldTextStyle(
-                      fontSize: 17,
-                      color: Colors.black,
-                    ),
-                  ),
+                //   title: Text(
+                //     agent?.fullName ?? '',
+                //     style: AppStyles.getSemiBoldTextStyle(
+                //       fontSize: 17,
+                //       color: Colors.black,
+                //     ),
+                //   ),
 
-                  subtitle: Text(
-                    agent?.email ?? '',
-                    style: AppStyles.getMediumTextStyle(
-                      fontSize: 12,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
+                //   subtitle: Text(
+                //     agent?.email ?? '',
+                //     style: AppStyles.getMediumTextStyle(
+                //       fontSize: 12,
+                //       color: Colors.black,
+                //     ),
+                //   ),
+                // ),
 
-                const SizedBox(height: 16),
+                // const SizedBox(height: 16),
 
                 // 🔄 Availability Switch
                 SwitchListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  title: Text(
-                    agentController.isAvailable ? 'Available' : 'Unavailable',
-                    style: AppStyles.getSemiBoldTextStyle(fontSize: 16),
+                  title: Row(
+                    children: [
+                      Text(
+                        agentController.isAvailable
+                            ? 'Available'
+                            : 'Unavailable',
+                        style: AppStyles.getSemiBoldTextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(width: 10),
+                      if (agentController.isLoading)
+                        const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                    ],
                   ),
                   value: agentController.isAvailable,
                   activeColor: AppColors.baseColor,
-                  onChanged: (_) => agentController.toggleAvailability(),
+                  onChanged: (_) async {
+                    await agentController.toggleAvailability();
+                    if (agentController.isAvailable) {
+                      await socketController.connectSocket();
+                    } else {
+                      socketController.disconnectSocket();
+                    }
+                  },
                 ),
 
                 const SizedBox(height: 16),
@@ -131,19 +164,58 @@ class CustomDrawer extends StatelessWidget {
                   ),
                   label: 'Leave Application',
                 ),
+                buildDrawerButton(
+                  selected: selectedIndex == 4,
+                  onTap: () {
+                    drawerProvider.updateIndex(4);
+                    Scaffold.of(context).closeDrawer();
+                  },
+                  icon: Icon(
+                    Icons.person_3_outlined,
+                    color:
+                        selectedIndex == 4 ? AppColors.baseColor : Colors.grey,
+                  ),
+                  label: 'Profile',
+                ),
 
+                buildDrawerButton(
+                  selected: selectedIndex == 5,
+                  onTap: () {
+                    drawerProvider.updateIndex(5);
+                    Scaffold.of(context).closeDrawer();
+                  },
+                  icon: Icon(
+                    Icons.money,
+                    color:
+                        selectedIndex == 5 ? AppColors.baseColor : Colors.grey,
+                  ),
+                  label: 'Earnings',
+                ),
+                buildDrawerButton(
+                  selected: selectedIndex == 6,
+                  onTap: () {
+                    drawerProvider.updateIndex(6);
+                    Scaffold.of(context).closeDrawer();
+                  },
+                  icon: Icon(
+                    Icons.emoji_events_outlined,
+                    color:
+                        selectedIndex == 6 ? AppColors.baseColor : Colors.grey,
+                  ),
+                  label: 'Incentive',
+                ),
                 // buildDrawerButton(
-                //   selected: selectedIndex == 2,
+                //   selected: selectedIndex == 7,
                 //   onTap: () {
-                //     drawerProvider.updateIndex(2);
+                //     drawerProvider.updateIndex(7);
                 //     Scaffold.of(context).closeDrawer();
                 //   },
                 //   icon: Icon(
-                //     OradoIcon.money,
+                //     Icons.rocket_launch_outlined,
                 //     color:
-                //         selectedIndex == 2 ? AppColors.baseColor : Colors.grey,
+                //         selectedIndex == 7 ? AppColors.baseColor : Colors.grey,
                 //   ),
-                //   label: 'Earnings',
+                //   label: 'MileStone',
                 // ),
                 buildDrawerButton(
                   onTap: () {

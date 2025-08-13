@@ -22,6 +22,8 @@ class SocketController extends ChangeNotifier {
   bool get isConnected => _isConnected;
 
   Future<void> connectSocket() async {
+    if (_isConnected) return; // Already connected
+
     log('Connecting socket...', name: 'Socket');
 
     try {
@@ -33,8 +35,6 @@ class SocketController extends ChangeNotifier {
         throw Exception('Agent ID not found in SharedPreferences');
       }
 
-      log('Attempting to connect with userId: $userId, userType: $userType');
-
       await _socketService.connect(
         userId: userId,
         userType: userType,
@@ -42,8 +42,6 @@ class SocketController extends ChangeNotifier {
           _isConnected = true;
           notifyListeners();
           log('Socket connected successfully', name: 'Socket');
-
-          // Start location updates when connected
           _startLocationUpdates(userId: userId);
         },
         onDisconnect: () {
@@ -77,22 +75,22 @@ class SocketController extends ChangeNotifier {
     }
   }
 
-  void _startLocationUpdates({required String userId}) async {
-    // Stop any existing timer
-    _stopLocationUpdates();
+  void _startLocationUpdates({required String userId}) {
+    _stopLocationUpdates(); // Stop any existing timer
 
-    // Get device info first
-    final deviceInfo = await _getDeviceInfo(userId);
-
-    // Start new timer that fires every second
     _locationUpdateTimer = Timer.periodic(Duration(seconds: 1), (timer) async {
+      if (!_isConnected) {
+        timer.cancel();
+        return;
+      }
+
       try {
-        // Get current position
         Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.best,
         );
 
-        // Emit location to server with device info
+        final deviceInfo = await _getDeviceInfo(userId);
+
         _socketService.emitAgentLocation(
           agentId: userId,
           lat: position.latitude,
@@ -100,18 +98,15 @@ class SocketController extends ChangeNotifier {
           deviceInfo: deviceInfo,
         );
 
-        // Also update agent status if needed
-        if (_socketService.instance?.connected == true) {
-          _socketService.instance?.emit('agentStatusUpdate', {
-            'agentId': userId,
-            'availabilityStatus': 'available',
-            'location': {
-              'latitude': position.latitude,
-              'longitude': position.longitude,
-            },
-            'deviceInfo': deviceInfo,
-          });
-        }
+        _socketService.instance?.emit('agentStatusUpdate', {
+          'agentId': userId,
+          'availabilityStatus': 'available',
+          'location': {
+            'latitude': position.latitude,
+            'longitude': position.longitude,
+          },
+          'deviceInfo': deviceInfo,
+        });
       } catch (e) {
         log('Error getting/sending location: $e', name: 'Socket');
       }
@@ -128,7 +123,6 @@ class SocketController extends ChangeNotifier {
     _socketService.disconnect();
     _isConnected = false;
     notifyListeners();
-    log('Socket disconnected', name: 'Socket');
   }
 
   // Helper method to get device info in the required format

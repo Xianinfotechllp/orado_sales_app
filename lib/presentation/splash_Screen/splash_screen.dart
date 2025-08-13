@@ -1,11 +1,11 @@
 // lib/presentation/screens/splash_screen.dart
-import 'package:demo/presentation/screens/auth/provider/user_provider.dart';
-import 'package:demo/presentation/screens/auth/service/selfi_status_service.dart';
-import 'package:demo/presentation/screens/auth/view/selfi_screen.dart';
+import 'package:demo/presentation/auth/provider/user_provider.dart';
+import 'package:demo/presentation/auth/service/selfi_status_service.dart';
+import 'package:demo/presentation/auth/view/selfi_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:demo/presentation/screens/main_screen.dart';
-import 'package:demo/presentation/screens/auth/view/login.dart';
+import 'package:demo/presentation/home/main_screen.dart';
+import 'package:demo/presentation/auth/view/login.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

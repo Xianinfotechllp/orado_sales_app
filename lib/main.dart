@@ -1,20 +1,22 @@
 // main.dart
+import 'package:demo/presentation/earnings/provider/earnings_controller.dart';
+import 'package:demo/presentation/incentive/controller/incentive_controller.dart';
 import 'package:demo/presentation/leave/controller/leave_controller.dart';
 import 'package:demo/presentation/letters/controller/letter_controller.dart';
 import 'package:demo/presentation/notification_fcm/controller/notification_get_controlller.dart';
 import 'package:demo/presentation/notification_fcm/service/fcm_service.dart';
-import 'package:demo/presentation/screens/auth/provider/login_reg_provider.dart';
-import 'package:demo/presentation/screens/auth/provider/upload_selfi_controller.dart';
-import 'package:demo/presentation/screens/auth/provider/user_provider.dart';
-import 'package:demo/presentation/screens/earnings/provider/earning_provider.dart';
-import 'package:demo/presentation/screens/home/homeview/provider/home_provider.dart';
-import 'package:demo/presentation/screens/orders/provider/order_details_provider.dart';
-import 'package:demo/presentation/screens/orders/provider/order_provider.dart';
-import 'package:demo/presentation/screens/orders/provider/order_response_controller.dart';
-import 'package:demo/presentation/screens/home/provider/available_provider.dart';
-import 'package:demo/presentation/screens/home/provider/drawer_controller.dart';
+import 'package:demo/presentation/auth/provider/login_reg_provider.dart';
+import 'package:demo/presentation/auth/provider/upload_selfi_controller.dart';
+import 'package:demo/presentation/auth/provider/user_provider.dart';
+import 'package:demo/presentation/home/home/homeview/provider/home_provider.dart';
+import 'package:demo/presentation/orders/provider/order_details_provider.dart';
+import 'package:demo/presentation/orders/provider/order_provider.dart';
+import 'package:demo/presentation/orders/provider/order_response_controller.dart';
+import 'package:demo/presentation/home/home/provider/available_provider.dart';
+import 'package:demo/presentation/home/home/provider/drawer_controller.dart';
 import 'package:demo/presentation/socket_io/socket_controller.dart';
 import 'package:demo/presentation/splash_Screen/splash_screen.dart';
+import 'package:demo/presentation/user/controller/user_controller.dart';
 import 'package:demo/services/api_services.dart';
 import 'package:demo/services/navigation_service.dart';
 import 'package:demo/services/notification_service.dart';
@@ -40,7 +42,8 @@ void main() async {
   }
 
   // Initialize the global SocketController
-  globalSocketController = SocketController();
+  final socketController = SocketController();
+  final agentAvailableController = AgentAvailableController(socketController);
 
   try {
     await globalSocketController.connectSocket();
@@ -58,20 +61,18 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthController>(create: (_) => AuthController()),
-        ChangeNotifierProvider<EarningsProvider>(
-          create: (_) => EarningsProvider(),
+        ChangeNotifierProvider<EarningsController>(
+          create: (_) => EarningsController(),
         ),
         ChangeNotifierProvider<AgentHomeProvider>(
           create: (_) => AgentHomeProvider(),
         ),
         ChangeNotifierProvider<AgentProvider>(create: (_) => AgentProvider()),
         ChangeNotifierProvider<DrawerProvider>(create: (_) => DrawerProvider()),
-        ChangeNotifierProvider<AgentAvailableController>(
-          create: (_) => AgentAvailableController(),
+        ChangeNotifierProvider<AgentAvailableController>.value(
+          value: agentAvailableController,
         ),
-        ChangeNotifierProvider<SocketController>.value(
-          value: globalSocketController,
-        ),
+        ChangeNotifierProvider<SocketController>.value(value: socketController),
         ChangeNotifierProvider<OrderController>(
           create: (_) => OrderController(),
         ),
@@ -96,6 +97,8 @@ void main() async {
         ChangeNotifierProvider<LeaveController>(
           create: (_) => LeaveController(),
         ),
+        ChangeNotifierProvider(create: (_) => AgentProfileController()),
+        ChangeNotifierProvider(create: (_) => IncentiveController()),
       ],
       child: const MyApp(),
     ),
